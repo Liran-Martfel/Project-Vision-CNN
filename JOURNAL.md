@@ -8,8 +8,8 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | **Dataset** | FER-2013 (Kaggle): 7 classes, 48×48 grayscale |
 | **Classes** | angry, disgust, fear, happy, neutral, sad, surprise |
 | **Environment** | Google Colab + Google Drive, Keras / TensorFlow |
-| **Best result so far** | **56.8% validation accuracy** (experiment 4) |
-| **Status** | Phase 2: training experiment 5 is running |
+| **Best result so far** | **58.0% validation accuracy** (experiment 5, final model) |
+| **Status** | Phase 2: training done. Next: save the model, final evaluation, then Streamlit |
 
 ---
 
@@ -31,7 +31,7 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | 2026-10-14 | Project started from the course brief (`project_vision_tasks.pdf`). Task checklist created; GitHub repo set up with the checklist in the README. |
 | 2026-10-20 | Chose facial expressions. Downloaded FER-2013 and extracted it locally. Re-split the local copy 70/30 (`split_dataset.py`). Locked `main` on GitHub so changes go through pull requests. |
 | 2026-10-20 → 10-23 | Built the data pipeline and the CNN in Colab. Ran experiments 1–4; experiment 5 started. |
-| 2026-10-23 | This journal written from the project summary. |
+| 2026-10-23 | This journal written from the project summary. Experiment 5 finished: **58.0%**, the best so far. Chosen as the final model. |
 
 ---
 
@@ -99,7 +99,7 @@ Output: `Found 28709 images belonging to 7 classes.` / `Found 7178 images belong
 
 ### 2.3 Building the model
 
-**Current model (experiment 5):**
+**Final model (experiment 5):**
 
 ```python
 cnn = Sequential()
@@ -187,7 +187,7 @@ Rule: **one change per experiment**, results written down before the next run, c
 | 2 | 64 filters in block 2 | 32 / 64 | – | 15 | ~839K | 55.5% (ep 13) | 1.183 (ep 11) | Same overfitting, slower |
 | 3 | + Dropout 0.5 | 32 / 64 | 0.5 | 15 | ~839K | 52.8% (ep 14) | 1.238 (ep 14) | No overfitting, still learning |
 | 4 | + EarlyStopping, 35 epochs | 32 / 64 | 0.5 | 35 | ~839K | **56.8% (ep 34)** | **1.143 (ep 34)** | Still improving slowly |
-| 5 | + Third block | 32 / 64 / 128 | 0.5 | ≤ 50 | 355,847 | *running* | *running* | *pending* |
+| 5 | + Third block | 32 / 64 / 128 | 0.5 | 34 (stopped) | 355,847 | **58.0% (ep 29, restored)** | **1.104 (ep 29)** | **Best**: no overfitting, learns faster |
 
 All runs: 28,709 training / 7,178 test images (the original 80/20 split), batch 32, Adam, categorical crossentropy.
 
@@ -238,13 +238,30 @@ All runs: 28,709 training / 7,178 test images (the original 80/20 split), batch 
 
 **Decision:** the model can still grow. Next, add depth.
 
-### Experiment 5: Third block (running)
+### Experiment 5: Third block
 
 **Setup:** 32 / 64 / 128 filters. **One change only:** the added block. (I considered also raising 64 → 128, but that would be two changes at once.) Up to 50 epochs since experiment 4 was still improving at 35; `patience` kept at 5 for a fair comparison. 355,847 params, lighter than experiment 4.
 
 **Compare against:** 56.8% / 1.143 from experiment 4.
 
-**Result:** *pending.*
+**Result:**
+- **EarlyStopping triggered for the first time.** The lowest `val_loss` was at epoch 29 (1.104). Epochs 30–34 brought no improvement (5 in a row), so training stopped at 34 and **epoch 29's weights were restored**.
+- **Restored model: 58.0% `val_accuracy`**, up from 56.8% in experiment 4.
+- The highest `val_accuracy` seen was 58.6% at epoch 31. But EarlyStopping watches `val_loss`, so it restored epoch 29. Lesson: the monitored metric decides which epoch you keep.
+- **Learns faster:** reached 56% by epoch 15; experiment 4 needed until epoch 26.
+- **No overfitting:** training `accuracy` (~58%) stays close to `val_accuracy`.
+
+| | Exp. 4 (2 blocks) | Exp. 5 (3 blocks) |
+|---|---|---|
+| Best `val_accuracy` | 56.8% | **58.0%** |
+| Lowest `val_loss` | 1.143 | **1.104** |
+| Epoch reaching 56% | 26 | **15** |
+| Params | ~839K | **355,847** |
+| EarlyStopping | never triggered | stopped at 34, restored 29 |
+
+**Diagnosis:** depth helped, and made the model lighter at the same time.
+
+**Decision:** this is the final model. Save it, evaluate it, and move to Streamlit.
 
 ### Rules I took from the experiments
 
@@ -253,6 +270,7 @@ All runs: 28,709 training / 7,178 test images (the original 80/20 split), batch 
 3. Compare `val_accuracy` and `val_loss`, not training `accuracy`.
 4. Look at the direction: are the metrics still improving at the end?
 5. Rebuild from `Sequential()` before every experiment.
+6. Choose what EarlyStopping monitors on purpose: it decides which epoch's weights you keep.
 
 ---
 
@@ -326,7 +344,7 @@ All runs: 28,709 training / 7,178 test images (the original 80/20 split), batch 
 |---|---|
 | 100% | 0 |
 | 50% | 0.69 |
-| 32% | **1.14** (≈ my model) |
+| 33% | **1.10** (≈ my final model) |
 | 14% (random, 1/7) | 1.95 |
 | 1% | 4.6 |
 
@@ -338,7 +356,8 @@ The loss is not a percentage; use it to compare epochs and experiments.
 |---|---|
 | Random guess among 7 | 14% |
 | Always guess "happy" | ~25% |
-| **My model (exp. 4)** | **56.8%** |
+| My model (exp. 4) | 56.8% |
+| **My model (exp. 5, final)** | **58.0%** |
 | Humans | ~65% |
 | Best research models | ~73–76% |
 
@@ -355,14 +374,14 @@ More depth (4–5+ blocks), BatchNormalization, longer training with a decaying 
 ## 6. Open issues and next steps
 
 ### Open issues
-- **The test set doubles as validation.** EarlyStopping picks the best epoch by looking at `testing_set`, so 56.8% is slightly optimistic. Cleaner: split validation from training (`validation_split`) and use the test set once, at the end.
+- **The test set doubles as validation.** EarlyStopping picks the best epoch by looking at `testing_set`, so 58.0% is slightly optimistic. Cleaner: split validation from training (`validation_split`) and use the test set once, at the end.
 - **Two different splits.** Colab trains on the original 80/20 split. The local `data/` folder was re-split 70/30 with `split_dataset.py`. To train on 70/30, run the script in Colab after extracting. Results after a re-split aren't directly comparable with experiments 1–5.
 - **Class imbalance.** `disgust` has ~16× fewer images than `happy`. Class weights or extra augmentation could help.
 - **Mixed imports.** `ImageDataGenerator` comes from `tensorflow.keras`, the layers from `keras`. Fine in Colab today; the first thing to check if odd errors appear elsewhere.
 
 ### Next steps
-1. Record experiment 5's result and compare it with 56.8%.
-2. **Save the best model to Drive** (`.keras`) right after training.
+1. ~~Record experiment 5's result and compare it with 56.8%.~~ Done: 58.0%.
+2. **Save the final model to Drive now** (`.keras`), before the Colab session ends.
 3. Final evaluation, ideally with a confusion matrix per emotion.
 4. Move to Phase 3 (Streamlit), and come back to improvements (BatchNormalization etc.) if time allows.
 5. In the app, preprocess every image the same way as in training: resize to 48×48, grayscale, divide by 255, reshape to `(1, 48, 48, 1)`.

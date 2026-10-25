@@ -9,7 +9,8 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | **Classes** | angry, disgust, fear, happy, neutral, sad, surprise |
 | **Environment** | Google Colab + Google Drive, Keras / TensorFlow |
 | **Best result so far** | **58.0% validation accuracy** (experiment 5, final model) |
-| **Status** | Phase 2: training done. Next: save the model, final evaluation, then Streamlit |
+| **Saved model** | `training_model.keras` (4.3 MB, saved 2026-10-24) |
+| **Status** | Phase 2 done: model trained, saved and downloaded. Next: the Streamlit app |
 
 ---
 
@@ -32,6 +33,7 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | 2026-10-20 | Chose facial expressions. Downloaded FER-2013 and extracted it locally. Re-split the local copy 70/30 (`split_dataset.py`). Locked `main` on GitHub so changes go through pull requests. |
 | 2026-10-20 → 10-23 | Built the data pipeline and the CNN in Colab. Ran experiments 1–4; experiment 5 started. |
 | 2026-10-23 | This journal written from the project summary. Experiment 5 finished: **58.0%**, the best so far. Chosen as the final model. |
+| 2026-10-24 | Saved the final model as `training_model.keras` and downloaded it to the PC. Phase 2 complete. |
 
 ---
 
@@ -172,6 +174,25 @@ cnn.fit(x=training_set, validation_data=testing_set, epochs=50, callbacks=[stopp
 - `val_accuracy` can beat training `accuracy`, because training runs with augmentation and Dropout and averages the whole epoch.
 - **EarlyStopping** watches `val_loss`, stops after `patience` epochs in a row without improvement, and restores the best weights. `patience` must be far smaller than `epochs`, or it never triggers. `restore_best_weights` only applies if it actually stopped.
 - **Colab autosave saves the notebook, not the model.** The model lives in server memory and disappears on disconnect. Save it to Drive right after training (`cnn.save('....keras')`), or during training with `ModelCheckpoint(save_best_only=True)`.
+
+### 2.6 The saved model
+
+**Did:** saved the experiment 5 model from Colab as `training_model.keras` (Keras 3.13.2, 2026-10-24) and downloaded it to the PC.
+
+**What's inside the file:** a `.keras` file is a ZIP archive with three parts:
+
+| Part | Size | What it holds |
+|---|---|---|
+| `config.json` | 7 KB | The architecture: every layer and its settings, plus the compile settings |
+| `model.weights.h5` | 4.3 MB | The trained weights (355,847 numbers) and the Adam optimizer's state |
+| `metadata.json` | 64 B | Keras version and save date |
+
+**Checked against experiment 5:** input `(48, 48, 1)`; Conv2D 32 / 64 / 128 (3×3, ReLU), each followed by MaxPooling 2×2; Flatten; Dense 128 ReLU; Dropout 0.5; Dense 7 softmax. Compiled with Adam, categorical crossentropy and accuracy. All of it matches.
+
+**Learned:**
+- The weights alone would take ~1.4 MB (355,847 × 4 bytes). The file is ~3× that because it also stores Adam's two running averages for every weight, so training could continue from where it stopped.
+- **The file doesn't store the class names.** The output is just 7 numbers in the order `flow_from_directory` assigned: alphabetical folder names, `angry, disgust, fear, happy, neutral, sad, surprise` (`training_set.class_indices`). The app has to use this exact order.
+- 4.3 MB is well under GitHub's 100 MB limit, so the model can go in the repo without Git LFS.
 
 ---
 
@@ -381,7 +402,7 @@ More depth (4–5+ blocks), BatchNormalization, longer training with a decaying 
 
 ### Next steps
 1. ~~Record experiment 5's result and compare it with 56.8%.~~ Done: 58.0%.
-2. **Save the final model to Drive now** (`.keras`), before the Colab session ends.
+2. ~~Save the final model to Drive.~~ Done: `training_model.keras`, downloaded to the PC on 2026-10-24.
 3. Final evaluation, ideally with a confusion matrix per emotion.
-4. Move to Phase 3 (Streamlit), and come back to improvements (BatchNormalization etc.) if time allows.
-5. In the app, preprocess every image the same way as in training: resize to 48×48, grayscale, divide by 255, reshape to `(1, 48, 48, 1)`.
+4. **Phase 3: build the Streamlit app** around `training_model.keras`. Come back to improvements (BatchNormalization etc.) if time allows.
+5. In the app, preprocess every image the same way as in training: resize to 48×48, grayscale, divide by 255, reshape to `(1, 48, 48, 1)`. Map the 7 outputs to `angry, disgust, fear, happy, neutral, sad, surprise`, in that order.

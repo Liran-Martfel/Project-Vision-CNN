@@ -1,0 +1,12 @@
+# Backend (api.py + vision_core.py)
+fastapi
+uvicorn
+python-multipart
+tensorflow
+pillow
+numpy
+opencv-python-headless<5  # OpenCV 5 removed CascadeClassifier, which the face detector uses
+
+# Frontend (app.py)
+streamlit
+requests

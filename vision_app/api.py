@@ -10,14 +10,16 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-from config import MODEL_DATASET
+from config import MODEL_DATASET, MODEL_FILENAME
 from vision_core import (
     cnn_model,
     create_answer,
+    emotions_probability,
     face_ditector,
     face_locating,
     organize_img,
     predict,
+    prediction_class_name,
 )
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
@@ -103,7 +105,7 @@ def upright_image_stream(data: bytes) -> io.BytesIO:
 
 @app.get("/health")
 def health() -> dict:
-    return {"status": "ok"}
+    return {"status": "ok", "model": MODEL_FILENAME}
 
 
 @app.post("/predict")
@@ -116,6 +118,7 @@ def predict_emotion(file: UploadFile = File(...)) -> dict:
     img = organize_img(croped_img)
     prediction, prediction_output, full_prediction = predict(img, cnn_model)
     answer = create_answer(prediction, prediction_output, full_prediction)
+    emotions = emotions_probability(prediction_class_name, prediction)
 
     return {
         "emotion": full_prediction,
@@ -123,6 +126,8 @@ def predict_emotion(file: UploadFile = File(...)) -> dict:
         "is_unknown": answer.startswith("Unknown"),  # decided by create_answer, not here
         "answer": answer,
         "face_detected": croped_img is not PIL_img,  # face_ditector returns its input when no face is found
-        # TODO (bonus): add the per-emotion probabilities here, e.g.
-        #   "probabilities": emotions_probability(prediction_class_name, prediction)
+        # Bonus: the probability of every emotion. "probabilities_text" is emotions_probability's own output;
+        # "probabilities" holds the same numbers (0-1, in prediction_class_name order) for the UI to display.
+        "probabilities_text": emotions,
+        "probabilities": {name: float(prediction[0][i]) for i, name in enumerate(prediction_class_name)},
     }

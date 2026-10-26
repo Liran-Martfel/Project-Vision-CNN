@@ -204,6 +204,13 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   content: "{browse_label}"; font-size: 1rem; font-weight: 600; font-family: inherit; margin-inline-start: 6px;
 }}
 [data-testid="stFileChip"] {{ max-width: 100%; }}
+/* Streamlit's small icon buttons (remove file, add file) get a 44px touch target */
+[data-testid="stFileChipDeleteBtn"] button,
+[data-testid="stFileUploaderDropzone"] [data-testid="stBaseButton-borderlessIcon"] {{
+  min-width: 44px; min-height: 44px; display: inline-flex; align-items: center; justify-content: center;
+}}
+/* The preview's hover toolbar (fullscreen) isn't part of the flow and its button is too small to tap */
+.st-key-preview_card [data-testid="stElementToolbar"] {{ display: none; }}
 [data-testid="stFileChipName"] {{ overflow: hidden; text-overflow: ellipsis; }}
 [data-testid="stCameraInput"] video, [data-testid="stCameraInput"] img {{ border-radius: var(--radius-md) var(--radius-md) 0 0; }}
 [data-testid="stCameraInputButton"] {{
@@ -263,6 +270,29 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 }}
 .v-notice svg {{ flex: none; color: var(--gold); margin-top: 1px; }}
 
+/* Bonus: every emotion's probability, quiet and secondary to the main result */
+.v-probs {{ width: 100%; margin-top: 18px; padding-top: 14px; border-top: 1px solid rgba(27, 42, 74, 0.10); text-align: start; }}
+.stApp .v-probs-title {{ margin: 0 0 8px; font-size: 0.85rem; font-weight: 600; color: var(--text-muted); letter-spacing: 0.02em; }}
+.v-prob-list {{ list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }}
+.stApp .v-prob {{
+  display: grid; grid-template-columns: minmax(6.5rem, auto) 1fr 3.4rem; align-items: center; gap: 10px;
+  margin: 0; padding: 0; font-size: 0.9rem; color: var(--text-muted);
+}}
+.v-prob-name {{ display: inline-flex; align-items: center; gap: 8px; }}
+.v-prob-name svg {{ flex: none; color: var(--accent); opacity: 0.7; }}
+.v-prob-bar {{ height: 6px; border-radius: 999px; background: rgba(27, 42, 74, 0.08); overflow: hidden; }}
+.v-prob-fill {{
+  display: block; height: 100%; border-radius: 999px; background: rgba(36, 64, 122, 0.45);
+  transform-origin: {"right" if direction == "rtl" else "left"};
+  animation: grow 520ms 120ms var(--ease-out) both;
+}}
+@keyframes grow {{ from {{ transform: scaleX(0); }} to {{ transform: scaleX(1); }} }}
+.v-prob-value {{ text-align: end; }}
+.stApp .v-prob.is-top {{ color: var(--navy); font-weight: 600; }}
+.v-prob.is-top .v-prob-fill {{ background: linear-gradient(90deg, var(--accent), var(--gold)); }}
+.v-prob.is-top .v-prob-name svg {{ opacity: 1; }}
+.v-result.is-unknown .v-prob.is-top .v-prob-fill {{ background: var(--text-muted); }}
+
 /* Skeleton while the model runs: same size as the result, so nothing jumps */
 .v-skeleton {{ min-height: 248px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }}
 .v-skel {{
@@ -273,6 +303,8 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 .v-skel.circle {{ width: 76px; height: 76px; border-radius: 50%; }}
 .v-skel.line-lg {{ width: 55%; height: 34px; }}
 .v-skel.line-sm {{ width: 30%; height: 22px; }}
+.v-skel-probs {{ width: 100%; margin-top: 18px; padding-top: 14px; display: grid; gap: 14px; border-top: 1px solid rgba(27, 42, 74, 0.10); }}
+.v-skel.line-row {{ width: 100%; height: 10px; }}
 .stApp .v-skel-label {{ margin: 4px 0 0; color: var(--text-muted); font-size: 0.9rem; }}
 @keyframes shimmer {{ from {{ background-position: 200% 0; }} to {{ background-position: -200% 0; }} }}
 
@@ -283,6 +315,13 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   background: rgba(181, 67, 76, 0.12); color: var(--danger);
 }}
 .stApp .v-error-title {{ margin: 0; font-weight: 600; font-size: 1.05rem; color: var(--navy); }}
+.v-error-alt {{
+  margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(27, 42, 74, 0.10); text-align: start;
+}}
+.v-error-alt[lang="he"] {{ font-family: var(--font-he); }}
+.v-error-alt[lang="en"] {{ font-family: var(--font); }}
+.stApp .v-error-alt .v-error-title {{ font-size: 0.95rem; }}
+.stApp .v-error-alt .v-error-body {{ font-size: 0.875rem; }}
 .stApp .v-error-body {{ margin: 4px 0 0; color: var(--text-muted); font-size: 0.95rem; line-height: 1.5; }}
 
 .stApp .v-footer {{ margin: 1.5rem 0 0; text-align: center; font-size: 0.8rem; color: var(--text-muted); }}
@@ -299,7 +338,7 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   .st-key-input_card, .st-key-preview_card, .v-card, .v-result, .v-result-icon {{
     animation: fade 200ms ease-out both !important;
   }}
-  .v-skel {{ animation: none; }}
+  .v-skel, .v-prob-fill {{ animation: none; }}
   .stButton button:active, .stDownloadButton button:active, [data-testid="stButtonGroup"] button:active {{ transform: none; }}
 }}
 @keyframes fade {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}

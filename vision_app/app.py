@@ -11,6 +11,7 @@ import os
 import requests
 import streamlit as st
 
+from config import MODEL_DATASET
 from i18n import DEFAULT_LANGUAGE, DIRECTION, LANGUAGES, STRINGS, emotion_name, t
 from styles import css, icon
 
@@ -276,7 +277,7 @@ def main() -> None:
     if image is not None:
         render_preview(lang, image, source)
 
-    st.markdown(f'<p class="v-footer">{t(lang, "footer")}</p>', unsafe_allow_html=True)
+    st.markdown(f'<p class="v-footer">{t(lang, "footer", dataset=MODEL_DATASET)}</p>', unsafe_allow_html=True)
 
     if not api_is_up():
         with status_slot:

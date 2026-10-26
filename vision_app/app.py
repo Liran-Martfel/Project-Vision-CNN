@@ -17,7 +17,8 @@ from styles import css, icon
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 UPLOAD_TYPES = ["jpg", "jpeg", "png", "webp"]
-MAX_UPLOAD_MB = 10
+MAX_UPLOAD_MB = 10            # the API's limit; checked here so the message is in the user's language
+UPLOADER_LIMIT_MB = 50        # Streamlit's own limit, set higher so it never shows its English-only error
 
 
 # ---------- State ----------
@@ -126,9 +127,21 @@ def error_card(title: str, body: str) -> str:
     return f'<div class="v-card">{error_message(title, body)}</div>'
 
 
+def api_down_message(lang: str) -> str:
+    """The API-down message in both languages: the current one first, the other one below it."""
+    other = "en" if lang == "he" else "he"
+    return (
+        f'<div class="v-error" role="alert"><div class="v-error-icon">{icon("alert")}</div><div>'
+        f'<p class="v-error-title">{t(lang, "api_down_title")}</p><p class="v-error-body">{t(lang, "api_down_body")}</p>'
+        f'<div class="v-error-alt" lang="{other}" dir="{DIRECTION[other]}">'
+        f'<p class="v-error-title">{t(other, "api_down_title")}</p><p class="v-error-body">{t(other, "api_down_body")}</p>'
+        f'</div></div></div>'
+    )
+
+
 def render_api_down(lang: str) -> None:
     with st.container(key="api_down_card"):
-        st.markdown(error_message(t(lang, "api_down_title"), t(lang, "api_down_body")), unsafe_allow_html=True)
+        st.markdown(api_down_message(lang), unsafe_allow_html=True)
         st.button(t(lang, "retry"), key="retry_health", type="secondary", width="stretch")
 
 
@@ -169,7 +182,7 @@ def render_inputs(lang: str) -> None:
                 key=f"upload_{n}",
                 on_change=use_source,
                 args=("upload",),
-                max_upload_size=MAX_UPLOAD_MB,
+                max_upload_size=UPLOADER_LIMIT_MB,
                 label_visibility="collapsed",
             )
             st.markdown(f'<p class="v-types">{t(lang, "upload_types")}</p>', unsafe_allow_html=True)
@@ -179,7 +192,24 @@ def skeleton(lang: str) -> str:
     return (
         '<div class="v-card"><div class="v-skeleton" aria-busy="true">'
         '<div class="v-skel circle"></div><div class="v-skel line-lg"></div><div class="v-skel line-sm"></div>'
-        f'<p class="v-skel-label" role="status">{t(lang, "analyzing")}</p></div></div>'
+        f'<p class="v-skel-label" role="status">{t(lang, "analyzing")}</p>'
+        '<div class="v-skel-probs">' + '<div class="v-skel line-row"></div>' * 7 + '</div></div></div>'
+    )
+
+
+def probabilities_list(lang: str, probabilities: dict, top: str) -> str:
+    """Bonus: every emotion's probability, most likely first."""
+    rows = ""
+    for emotion, value in sorted(probabilities.items(), key=lambda item: item[1], reverse=True):
+        rows += (
+            f'<li class="v-prob{" is-top" if emotion == top else ""}">'
+            f'<span class="v-prob-name">{icon(emotion, 18)}{html.escape(emotion_name(lang, emotion))}</span>'
+            f'<span class="v-prob-bar" aria-hidden="true"><span class="v-prob-fill" style="width:{value * 100:.1f}%"></span></span>'
+            f'<span class="v-num v-prob-value">{percent(value)}</span></li>'
+        )
+    return (
+        f'<div class="v-probs"><p class="v-probs-title">{t(lang, "all_emotions")}</p>'
+        f'<ul class="v-prob-list">{rows}</ul></div>'
     )
 
 
@@ -205,7 +235,7 @@ def result_card(lang: str, data: dict) -> str:
             f'<p class="v-result-emotion">{name}</p>'
             f'<span class="v-pill">{t(lang, "confidence")} {confidence}</span>'
         )
-    # TODO (bonus): show the other emotions' percentages here (from the API's per-emotion probabilities)
+    body += probabilities_list(lang, data["probabilities"], data["emotion"])
     if not data["face_detected"]:
         body += f'<div class="v-notice">{icon("scan", 20)}<span>{t(lang, "no_face")}</span></div>'
     return f'<div class="v-card v-result-card">{body}</div></div>'
@@ -219,6 +249,10 @@ def render_preview(lang: str, image, source: str) -> None:
 
     with st.container(key="preview_card"):
         st.markdown(f'<p class="v-section-title">{t(lang, "preview_title")}</p>', unsafe_allow_html=True)
+        if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
+            st.markdown(error_message(t(lang, "error_title"), t(lang, "error_file_too_large")), unsafe_allow_html=True)
+            st.button(t(lang, "start_over"), key="start_over", on_click=start_over, type="secondary", width="stretch")
+            return
         try:
             st.image(data, width="stretch", alt=t(lang, "preview_title"))
         except Exception:  # the file has an image extension but isn't a readable image
@@ -249,7 +283,7 @@ def render_preview(lang: str, image, source: str) -> None:
         slot.markdown(result_card(lang, result["data"]), unsafe_allow_html=True)
     elif error and error["image_id"] == image_id:
         if error["kind"] == "api_down":
-            slot.markdown(error_card(t(lang, "api_down_title"), t(lang, "api_down_body")), unsafe_allow_html=True)
+            slot.empty()  # the API-down card at the top of the page already says it, once
         else:
             key = f"error_{error['kind']}"
             message = t(lang, key) if key in STRINGS[lang] else t(lang, "error_generic")

@@ -1,6 +1,87 @@
 # Project Vision · CNN
 
-מערכת לזיהוי וסיווג תמונות באמצעות רשת נוירונים קונבולוציונית (CNN): אימון המודל ב-Google Colab, ואפליקציית Streamlit שטוענת את המודל ומסווגת תמונות בזמן אמת.
+Facial-emotion recognition with a convolutional neural network, end to end: the model is trained in
+Google Colab, and a web app (FastAPI + Streamlit) lets anyone take or upload a photo and see the emotion.
+
+מערכת לזיהוי הבעות פנים באמצעות רשת נוירונים קונבולוציונית (CNN): אימון המודל ב-Google Colab, ואפליקציית רשת שמסווגת תמונות בזמן אמת.
+
+| | |
+|---|---|
+| **Topic** | Facial expressions (7 emotions: angry, disgust, fear, happy, neutral, sad, surprise) |
+| **Dataset** | FER+ (FER-2013 faces with Microsoft's improved labels), `contempt` removed → 7 classes |
+| **Model** | CNN: 3 × (Conv2D + MaxPooling) → Dense 128 → Dropout 0.5 → Dense 7 softmax, 355,847 parameters |
+| **Final accuracy** | **74.5%** on the FER+ test set (7,042 images) |
+| **App** | FastAPI REST backend + Streamlit frontend, Hebrew/English, phone and desktop |
+
+## Results
+
+All three models share the same architecture; only the training data and settings changed.
+
+| Model | Trained on | Test accuracy | |
+|---|---|---|---|
+| v1 `training_model.keras` | FER-2013 | ~59% | first version |
+| **v2 `training_model_v2.keras`** | **FER+ (7 classes)** | **74.5%** | **used by the app** |
+| v3 `training_model_v3.keras` | FER+ with `class_weight='balanced'` | 61% | experiment |
+
+**Why v2:** FER+'s cleaner labels raised accuracy by about 15 points over v1. v3 tried to help the rare
+emotions with class weights, but lost 13.5 points overall, so v2 was kept. v2's weak spots are the rare
+classes: disgust (57 test images) is never predicted and fear is recognized 22% of the time
+(per-class report in `PROJECT_CNN.ipynb`). Below 60% confidence the app answers "Unknown".
+
+## Repository
+
+```
+.
+├── PROJECT_CNN.ipynb        Colab notebook: data, training, evaluation (confusion matrix, report)
+├── JOURNAL.md               learning log and experiments
+├── README.md
+└── vision_app/              the web app
+    ├── api.py               FastAPI: GET /health, POST /predict
+    ├── vision_core.py       inference functions from the notebook + model loading
+    ├── app.py               Streamlit UI (talks to the API over HTTP only)
+    ├── config.py            MODEL_FILENAME, MODEL_DATASET
+    ├── i18n.py, styles.py   Hebrew/English text, design
+    ├── models/training_model_v2.keras
+    ├── requirements.txt
+    └── README.md            full API reference and details
+```
+
+## Run it
+
+Requires **Python 3.12** (TensorFlow has no stable build for 3.14 yet).
+
+```bash
+cd vision_app
+py -3.12 -m venv .venv
+.venv\Scripts\activate                 # macOS/Linux: source .venv/bin/activate
+pip install -r requirements.txt
+
+uvicorn api:app --port 8000            # terminal 1: the API (prints the loaded model and its SHA-256)
+streamlit run app.py                   # terminal 2: the website → http://localhost:8501
+```
+
+If port 8000 is taken, run the API on another port and set `API_URL` before starting Streamlit
+(see `vision_app/README.md`).
+
+## Open it on a phone with ngrok
+
+ngrok gives the app a public **HTTPS** address, which the phone camera needs.
+
+1. Create a free account at ngrok.com and install ngrok (Windows: `winget install ngrok.ngrok`).
+2. Connect your account once (the token stays on your computer, never in this repo):
+   `ngrok config add-authtoken <YOUR_TOKEN>`
+3. With both servers running: `ngrok http 8501`
+4. Open the `https://….ngrok-free.dev` address it prints on your phone, and tap "Visit Site" on ngrok's notice page.
+
+Only the Streamlit port is exposed; the API stays private on your computer.
+
+## Credits
+
+- **FER-2013:** Goodfellow et al., "Challenges in Representation Learning" (ICML 2013),
+  available on Kaggle: https://www.kaggle.com/datasets/msambare/fer2013
+- **FER+ labels:** Microsoft, Barsoum et al., "Training Deep Networks for Facial Expression Recognition
+  with Crowd-Sourced Label Distribution" (2016): https://github.com/microsoft/FERPlus
+- Face detection: OpenCV Haar cascade (`haarcascade_frontalface_default.xml`).
 
 ---
 

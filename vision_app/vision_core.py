@@ -5,6 +5,7 @@ Only the module-level setup changed: no google.colab, and the model path is buil
 from this file's location. The model and the face detector load once, at import.
 """
 
+import hashlib
 import os
 
 from tensorflow.keras.models import load_model
@@ -15,6 +16,13 @@ import cv2 # openCV library which have face recegnition trained modelinside
 from config import MODEL_FILENAME
 
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", MODEL_FILENAME)
+
+# Fail loudly: never fall back to another model file
+if not os.path.isfile(MODEL_PATH):
+    raise FileNotFoundError(f"Model file not found: {MODEL_PATH} (set MODEL_FILENAME in config.py)")
+with open(MODEL_PATH, "rb") as model_file:
+    MODEL_SHA256 = hashlib.sha256(model_file.read()).hexdigest()
+print(f"VISION model loaded: {MODEL_FILENAME} | {os.path.getsize(MODEL_PATH):,} bytes | sha256 {MODEL_SHA256}", flush=True)
 
 cnn_model = load_model(MODEL_PATH)
 prediction_class_name = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise'] #creating the list of emotions so it can work on the website without the training data

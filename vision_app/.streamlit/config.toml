@@ -11,7 +11,7 @@ toolbarMode = "minimal"
 showErrorDetails = "none"
 
 [server]
-maxUploadSize = 10
+maxUploadSize = 50  # above the API's 10 MB, so the app shows its own translated "too large" message
 
 [browser]
 gatherUsageStats = false

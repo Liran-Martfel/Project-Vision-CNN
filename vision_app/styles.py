@@ -119,7 +119,7 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 .st-key-lang_row {{ align-items: center; }}
 .st-key-lang_row [data-testid="stButtonGroup"] {{ justify-content: center; }}
 [data-testid="stButtonGroup"] button {{
-  min-height: 40px; min-width: 88px; border-radius: 999px !important;
+  min-height: 44px; min-width: 88px; border-radius: 999px !important;
   border: 1px solid var(--glass-border) !important; background: var(--glass-bg) !important;
   color: var(--navy) !important; font-weight: 600;
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);

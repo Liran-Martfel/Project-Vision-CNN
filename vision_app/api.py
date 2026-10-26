@@ -10,6 +10,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
+from config import MODEL_DATASET
 from vision_core import (
     cnn_model,
     create_answer,
@@ -20,10 +21,12 @@ from vision_core import (
 )
 
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
-ALLOWED_FORMATS = {"JPEG", "PNG", "WEBP"}  # JPEG covers .jpg and .jpeg
+# JPEG covers .jpg and .jpeg. MPO is also a JPEG: iPhone gallery photos embed a second image
+# (HDR/depth data), so Pillow reports them as MPO; the first frame is the photo itself.
+ALLOWED_FORMATS = {"JPEG", "MPO", "PNG", "WEBP"}
 PNG_SAFE_MODES = {"1", "L", "LA", "I", "P", "RGB", "RGBA"}
 
-app = FastAPI(title="VISION API", description="Facial-emotion recognition (FER-2013, 7 emotions)")
+app = FastAPI(title="VISION API", description=f"Facial-emotion recognition ({MODEL_DATASET}, 7 emotions)")
 
 
 class BadImage(Exception):

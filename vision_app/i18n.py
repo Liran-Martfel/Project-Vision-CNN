@@ -42,7 +42,7 @@ STRINGS = {
         "error_empty_file": "הקובץ ריק. נסו לבחור תמונה אחרת.",
         "error_corrupt_image": "התמונה פגומה ולא ניתן לפתוח אותה. נסו תמונה אחרת.",
         "error_generic": "משהו השתבש בזמן הניתוח. נסו שוב.",
-        "footer": "מודל <bdi>CNN</bdi> שאומן על <bdi>FER-2013</bdi> · 7 רגשות",
+        "footer": "מודל <bdi>CNN</bdi> שאומן על <bdi>{dataset}</bdi> · 7 רגשות",
     },
     "en": {
         "page_title": "VISION · Emotion recognition",
@@ -81,7 +81,7 @@ STRINGS = {
         "error_empty_file": "The file is empty. Try choosing another image.",
         "error_corrupt_image": "The image is damaged and can't be opened. Try another one.",
         "error_generic": "Something went wrong during the analysis. Please try again.",
-        "footer": "CNN model trained on FER-2013 · 7 emotions",
+        "footer": "CNN model trained on {dataset} · 7 emotions",
     },
 }
 

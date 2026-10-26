@@ -12,7 +12,9 @@ from PIL import Image #Python Image Library
 import numpy as np
 import cv2 # openCV library which have face recegnition trained modelinside
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", "training_model.keras")
+from config import MODEL_FILENAME
+
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", MODEL_FILENAME)
 
 cnn_model = load_model(MODEL_PATH)
 prediction_class_name = ['angry', 'disgust', 'fear', 'happy', 'neutral', 'sad', 'surprise'] #creating the list of emotions so it can work on the website without the training data

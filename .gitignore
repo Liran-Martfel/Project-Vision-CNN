@@ -1,0 +1,8 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Dataset (too large for the repo)
+data/
+*.zip

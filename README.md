@@ -100,4 +100,15 @@ See [vision_app/README.md](vision_app/README.md) for the API reference and app-s
 - **FER+:** Barsoum et al., “Training Deep Networks for Facial Expression Recognition with Crowd-Sourced Label Distribution,” 2016. [Microsoft FER+ repository](https://github.com/microsoft/FERPlus).
 - **Face detection:** OpenCV Haar cascade, `haarcascade_frontalface_default.xml`.
 
+## If the website doesn't open
+
+| What you see | What it means | What to do |
+|---|---|---|
+| A **"You are about to visit"** page with a **Visit Site** button | ngrok's notice on the free plan, shown once per browser | Click **Visit Site**. The app opens, and that browser won't see the notice again |
+| `ERR_NGROK_3200` (endpoint offline) | The site isn't running on the host computer | Start the three commands in [Running the server](#running-the-server), in three terminals. Closing a terminal stops that part |
+| `ERR_NGROK_334` (endpoint already online) | Another ngrok window is already using the address | Close the other ngrok window (or run `taskkill /IM ngrok.exe /F`), then start ngrok again |
+| `ERR_NGROK_121` (agent version too old) | The ngrok program is older than 3.20.0 | Install a newer version from [ngrok.com/download](https://ngrok.com/download). The `winget` package (3.3.1) is too old |
+| `ngrok` is "not recognized", or `ngrok.exe` disappeared after `ngrok update` | Windows Defender quarantined the newest version as `Trojan:Win32/Kepavll!rfn` (a false positive) | Use version **3.39.11**, which Defender doesn't flag, and don't run `ngrok update` |
+| The app opens but says **"The service isn't available right now"** | The API isn't running | Start `uvicorn api:app --port 8000` in `vision_app` and press **Try again** |
+
 **Author:** Liran Martfel

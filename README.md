@@ -31,9 +31,9 @@ The project compares three versions using the same CNN architecture:
 |---|---|---:|---|
 | v1 | FER-2013 | ~59% | Initial model |
 | **v2** | **FER+ (7 classes)** | **74.5%** | **Selected for the app** |
-| v3 | FER+ with balanced class weights | 61.2% | Experiment; not selected |
+| v3 | FER+ with balanced class weights | 54% | Experiment; not selected |
 
-FER+ improved the v2 result over v1. The app then applies a prior correction to v2's output to reduce the effect of class imbalance (`balance_prediction` in the notebook and in `vision_core.py`). On the test set, this changed accuracy from **74.5% to 73.8%** and macro recall from **52.4% to 60.2%**. The correction improves the balance of predictions for less common emotions; it does not retrain the model.
+FER+ improved the v2 result over v1. v3 recognized the rare emotions better (macro recall 0.58 vs 0.52) but lost accuracy on the common ones (neutral, happy), which make up most real photos, so v2 was selected. The app then applies a prior correction to v2's output to reduce the effect of class imbalance (`balance_prediction` in the notebook and in `vision_core.py`). On the test set, this changed accuracy from **74.5% to 73.8%** and macro recall from **52.4% to 60.2%**. The correction improves the balance of predictions for less common emotions; it does not retrain the model.
 
 ## Using the website
 

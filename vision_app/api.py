@@ -19,6 +19,7 @@ from vision_core import (
     face_locating,
     organize_img,
     predict,
+    balance_prediction,
     prediction_class_name,
 )
 
@@ -117,6 +118,7 @@ def predict_emotion(file: UploadFile = File(...)) -> dict:
     croped_img = face_ditector(face_img, PIL_img)
     img = organize_img(croped_img)
     prediction, prediction_output, full_prediction = predict(img, cnn_model)
+    prediction, prediction_output, full_prediction = balance_prediction(prediction)
     answer = create_answer(prediction, prediction_output, full_prediction)
     emotions = emotions_probability(prediction_class_name, prediction)
 

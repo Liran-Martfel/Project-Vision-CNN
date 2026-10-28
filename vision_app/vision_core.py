@@ -74,3 +74,15 @@ def face_ditector(face_img,PIL_img):
   h = faces[0][3]
   croped_img = PIL_img.crop((x, y, x + w, y + h))  # crop to the face box: (left, top, right, bottom); right = x+w, bottom = y+h
   return croped_img
+
+# How common each emotion was in the FER+ training set (same order as prediction_class_name)
+train_counts = np.array([2466, 191, 652, 7528, 10308, 3514, 3562])
+train_prior = train_counts / train_counts.sum()
+
+def balance_prediction(prediction, alpha=0.5):
+  # remove part of the model's habit of guessing the common emotions (neutral, happy)
+  balanced = prediction / train_prior ** alpha
+  balanced = balanced / balanced.sum()                   # back to 100%
+  prediction_output = np.argmax(balanced)                # position of the highest probability
+  full_prediction = prediction_class_name[prediction_output]
+  return balanced, prediction_output, full_prediction

@@ -67,6 +67,10 @@ def start_over() -> None:
 
 
 def ask_prediction(image_id: str) -> None:
+    # A click that lands before the button shows as disabled must not send the same image again
+    result = st.session_state.result
+    if st.session_state.pending == image_id or (result and result["image_id"] == image_id):
+        return
     st.session_state.pending = image_id
 
 

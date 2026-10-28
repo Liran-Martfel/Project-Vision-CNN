@@ -37,7 +37,7 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | 2026-10-23 | This journal written from the project summary. Experiment 5 finished: **58.0%**, the best so far. Chosen as the final model. |
 | 2026-10-24 | Saved the final model as `training_model.keras` and downloaded it to the PC. Phase 2 complete. Wrote the single-image inference pipeline and split it into functions (`organize_img`, `predict`, `create_answer`). |
 | 2026-10-25 | Added automatic face cropping with OpenCV (Haar cascade). Evaluated v1 with a confusion matrix: rare emotions were weak. First version of the web app (FastAPI + Streamlit), built around my functions. |
-| 2026-10-25 → 10-26 | Switched to **FER+**: same model, **74.5%** (v2). Tried class weights (v3, 61.2%) and kept v2. |
+| 2026-10-25 → 10-26 | Switched to **FER+**: same model, **74.5%** (v2). Tried class weights (v3, 54%) and kept v2. |
 | 2026-10-26 | Fixed iPhone gallery photos (Pillow reads them as MPO). Moved the app to v2, ran a full audit, added the all-emotion probabilities and connected the app to the internet with ngrok. |
 | 2026-10-27 | Tested the site on my own phone over ngrok: camera, gallery upload, a confident result (happy, 100%) and an Unknown result (51.5%). |
 | 2026-10-28 | Layout review and fixes (the inputs fold away, the result scrolls into view, two columns on desktop). Added the **prior correction** (`balance_prediction`, α = 0.5) to the notebook and the app. README rewritten. ngrok stopped working: the agent needed an update, and Windows Defender quarantined the newest version (3.39.13). Went back to 3.39.11, the version that had worked; the public link is up again. |
@@ -292,7 +292,7 @@ balanced = balanced / balanced.sum()
 | **accuracy** | **74.5%** | 73.8% |
 | **macro avg recall** | 52.4% | **60.2%** |
 
-**Learned:** α decides how strong the correction is: 0 changes nothing, 1 divides by the full prior. α = 0.5 gives most of the rare emotions' gain (disgust 0% → 21%, fear 22% → 44%) for less than 1% of overall accuracy, a better trade than v3's class weights (−13 points of accuracy). The counts must be in the same alphabetical order as `prediction_class_name`; they add up to 28,221, the number `flow_from_directory` reports.
+**Learned:** α decides how strong the correction is: 0 changes nothing, 1 divides by the full prior. α = 0.5 gives most of the rare emotions' gain (disgust 0% → 21%, fear 22% → 44%) for less than 1% of overall accuracy, a better trade than v3's class weights (about −20 points of accuracy). The counts must be in the same alphabetical order as `prediction_class_name`; they add up to 28,221, the number `flow_from_directory` reports.
 
 ---
 
@@ -419,14 +419,14 @@ weights = compute_class_weight(class_weight='balanced', classes=emotion_array, y
 class_weights = dict(enumerate(weights))   # Keras needs {class_index: weight}, not an array
 ```
 
-**Result:** 61.2% (epoch 33, restored). The weights **worked**: disgust 0% → 40%, fear 22% → 56%, sad 37% → 54% recall, macro recall 0.52 → **0.58**. But the model **overcorrects**: neutral fell from 86% to 56%, happy from 87% to 68%, 551 neutral images were labeled sad, and fear's precision dropped to 0.18. Training was also less stable (`val_accuracy` jumped between 52% and 61%). The surprise photo: 78%.
+**Result:** **54%** accuracy. (The best `val_accuracy` during training was 61.2%, at epoch 33.) The weights **worked**: disgust 0% → 40%, fear 22% → 56%, sad 37% → 54% recall, macro recall 0.52 → **0.58**. But the model **overcorrects**: neutral fell from 86% to 56%, happy from 87% to 68%, 551 neutral images were labeled sad, and fear's precision dropped to 0.18. Training was also less stable (`val_accuracy` jumped between 52% and 61%). The surprise photo: 78%.
 
 ### Choosing the final model
 
 | | v1 | **v2** | v3 |
 |---|---|---|---|
 | Data | FER-2013 | **FER+** | FER+ + class weights |
-| Accuracy | 59% | **74.5%** | 61% |
+| Accuracy | 59% | **74.5%** | 54% |
 | Macro avg recall | 0.50 | 0.52 | **0.58** |
 | Surprise photo | 55.8% | **94.6%** | 78% |
 | File | `training_model.keras` | **`training_model_v2.keras`** | `training_model_v3.keras` |
@@ -547,7 +547,7 @@ Phone → https://spoof-nylon-unclip.ngrok-free.dev → ngrok on my PC → Strea
 | "55% is like a coin flip" | A guess among 7 gives 14%, so the model is 4× better |
 | "Colab saves automatically" | It saves the **notebook**, not the **model** |
 | "Accuracy went from 59% to 74.5%, so FER+ fixed the rare emotions" | Most of the jump is neutral; macro recall barely moved (0.50 → 0.52) |
-| "Class weights are the fix for imbalance" | They helped the rare emotions but cost 13 points of accuracy; the prior correction did most of it for under 1 point |
+| "Class weights are the fix for imbalance" | They helped the rare emotions but cost about 20 points of accuracy; the prior correction did most of it for under 1 point |
 | "`summary()` shows which model I loaded" | Models with the same architecture look identical; check with `evaluate` or the file's fingerprint |
 | "ngrok hosts my site" | It's a tunnel to my computer; the site is up only while my PC runs the servers |
 
@@ -608,8 +608,6 @@ More depth (4–5+ blocks), BatchNormalization, longer training with a decaying 
 
 ### Open issues
 - **The test set doubles as validation.** EarlyStopping picks the best epoch by looking at `testing_set`, so 74.5% is slightly optimistic. Cleaner: split validation from training (`validation_split`) and use the test set once, at the end.
-- **The notebook doesn't run top to bottom on a fresh runtime.** The v3 training cell uses `np` and `compute_class_weight` before the later cells import them, so "Run all" stops there with `NameError`.
-- **The v3 number in the notebook.** The comment in the training cell says v3 reached 54%, but the same cell's log shows the restored epoch (33) at 61.2%, the figure in this journal.
 - **Class imbalance.** Disgust has 54× fewer training images than neutral. The prior correction helps (disgust recall 0% → 21%), but more disgust and fear images would help more.
 - **The website is only online while my computer is.** ngrok tunnels to my PC. Always-on would need real hosting (for example Streamlit Community Cloud plus a host for the API).
 - **ngrok stays on 3.39.11.** Don't run `ngrok update` until Microsoft stops flagging the newest version; it would replace the working file with the one Defender quarantines.

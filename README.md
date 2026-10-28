@@ -84,6 +84,7 @@ ngrok http --url=spoof-nylon-unclip.ngrok-free.dev 8502
 | `vision_app/styles.py` | Interface styling |
 | `vision_app/models/` | The model used by the app (`training_model_v2.keras`) |
 | `vision_app/requirements.txt` | Python dependencies |
+| `training_model.keras` | v1, the earlier FER-2013 model (~59%), kept for reference; the app doesn't use it |
 
 See [vision_app/README.md](vision_app/README.md) for the API reference and app-specific configuration details.
 

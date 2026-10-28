@@ -31,15 +31,25 @@ def init_state() -> None:
         "source": None,        # "camera" or "upload": whichever the user used last
         "result": None,        # {"image_id": ..., "data": {...}} from the API
         "error": None,         # {"image_id": ..., "kind": "api_down" | error code}
+        "pending": None,       # image_id while a prediction runs, so the button can't send it twice
+        "scroll_to": None,     # "preview" or "result": what to bring on screen after this run
     }
     for key, value in defaults.items():
         st.session_state.setdefault(key, value)
+
+
+def switch_language() -> None:
+    st.session_state.lang = "en" if st.session_state.lang == "he" else "he"
 
 
 def use_source(source: str) -> None:
     st.session_state.source = source
     st.session_state.result = None
     st.session_state.error = None
+    st.session_state.pending = None
+    st.session_state.scroll_to = "preview"
+    if source == "upload":
+        st.session_state.camera_open = False  # the inputs fold away, so don't leave a live camera behind them
 
 
 def toggle_camera() -> None:
@@ -52,6 +62,12 @@ def start_over() -> None:
     st.session_state.source = None
     st.session_state.result = None
     st.session_state.error = None
+    st.session_state.pending = None
+    st.session_state.scroll_to = None
+
+
+def ask_prediction(image_id: str) -> None:
+    st.session_state.pending = image_id
 
 
 def current_image():
@@ -100,20 +116,15 @@ def percent(value: float) -> str:
 
 
 def render_header(lang: str) -> None:
+    # The language switch sits in the page's top corner, out of the main column (see styles.py)
+    other = "en" if lang == "he" else "he"
+    with st.container(key="lang_switch"):
+        st.button(LANGUAGES[other], key="lang_toggle", on_click=switch_language)
     st.markdown(
         f'<header class="v-header"><h1 class="v-title">{t(lang, "title")}</h1>'
         f'<p class="v-subtitle">{t(lang, "subtitle")}</p></header>',
         unsafe_allow_html=True,
     )
-    with st.container(key="lang_row"):
-        st.segmented_control(
-            t(lang, "language_label"),
-            options=list(LANGUAGES),
-            format_func=LANGUAGES.get,
-            key="lang",
-            required=True,
-            label_visibility="collapsed",
-        )
 
 
 def error_message(title: str, body: str) -> str:
@@ -145,10 +156,11 @@ def render_api_down(lang: str) -> None:
         st.button(t(lang, "retry"), key="retry_health", type="secondary", width="stretch")
 
 
-def tile_head(name: str, title: str, hint: str) -> str:
+def tile_head(name: str, title: str, hint: str, note: str = "") -> str:
+    note = f'<p class="v-types">{note}</p>' if note else ""
     return (
         f'<div class="v-tile-head"><div class="v-tile-icon">{icon(name)}</div>'
-        f'<div><p class="v-tile-title">{title}</p><p class="v-tile-hint">{hint}</p></div></div>'
+        f'<div><p class="v-tile-title">{title}</p><p class="v-tile-hint">{hint}</p>{note}</div></div>'
     )
 
 
@@ -175,7 +187,10 @@ def render_inputs(lang: str) -> None:
                     label_visibility="collapsed",
                 )
         with upload_col, st.container(key="upload_tile"):
-            st.markdown(tile_head("upload", t(lang, "upload_title"), t(lang, "upload_hint")), unsafe_allow_html=True)
+            st.markdown(
+                tile_head("upload", t(lang, "upload_title"), t(lang, "upload_hint"), t(lang, "upload_types")),
+                unsafe_allow_html=True,
+            )
             st.file_uploader(
                 t(lang, "upload_label"),
                 type=UPLOAD_TYPES,
@@ -185,7 +200,6 @@ def render_inputs(lang: str) -> None:
                 max_upload_size=UPLOADER_LIMIT_MB,
                 label_visibility="collapsed",
             )
-            st.markdown(f'<p class="v-types">{t(lang, "upload_types")}</p>', unsafe_allow_html=True)
 
 
 def skeleton(lang: str) -> str:
@@ -235,47 +249,75 @@ def result_card(lang: str, data: dict) -> str:
             f'<p class="v-result-emotion">{name}</p>'
             f'<span class="v-pill">{t(lang, "confidence")} {confidence}</span>'
         )
-    body += probabilities_list(lang, data["probabilities"], data["emotion"])
-    if not data["face_detected"]:
+    if not data["face_detected"]:  # it explains the result, so it sits right under it
         body += f'<div class="v-notice">{icon("scan", 20)}<span>{t(lang, "no_face")}</span></div>'
+    body += probabilities_list(lang, data["probabilities"], data["emotion"])
     return f'<div class="v-card v-result-card">{body}</div></div>'
 
 
-def render_preview(lang: str, image, source: str) -> None:
-    data = image.getvalue()
-    image_id = hashlib.sha1(data).hexdigest()
-    mime = image.type or "image/jpeg"
-    name = image.name if source == "upload" else "vision-photo.jpg"
+def placeholder_card(lang: str) -> str:
+    """Desktop only: holds the result column's place until the first prediction."""
+    return (
+        f'<div class="v-card v-placeholder"><div class="v-result-icon">{icon("scan", 32)}</div>'
+        f'<p class="v-result-hint">{t(lang, "result_placeholder")}</p></div>'
+    )
 
+
+def render_preview(lang: str, data: bytes, image_id: str, name: str, mime: str) -> bool:
+    """The image card. Returns False when the file can't be shown (it then explains why)."""
     with st.container(key="preview_card"):
-        st.markdown(f'<p class="v-section-title">{t(lang, "preview_title")}</p>', unsafe_allow_html=True)
+        with st.container(key="preview_head", horizontal=True, horizontal_alignment="distribute", vertical_alignment="center"):
+            st.markdown(f'<p class="v-section-title">{t(lang, "preview_title")}</p>', unsafe_allow_html=True, width="content")
+            st.button(t(lang, "change_photo"), key="change_photo", on_click=start_over, type="tertiary")
         if len(data) > MAX_UPLOAD_MB * 1024 * 1024:
             st.markdown(error_message(t(lang, "error_title"), t(lang, "error_file_too_large")), unsafe_allow_html=True)
             st.button(t(lang, "start_over"), key="start_over", on_click=start_over, type="secondary", width="stretch")
-            return
+            return False
         try:
             st.image(data, width="stretch", alt=t(lang, "preview_title"))
         except Exception:  # the file has an image extension but isn't a readable image
             st.markdown(error_message(t(lang, "error_title"), t(lang, "error_not_an_image")), unsafe_allow_html=True)
             st.button(t(lang, "start_over"), key="start_over", on_click=start_over, type="secondary", width="stretch")
-            return
+            return False
         identify_col, save_col = st.columns(2, gap="small")
         with identify_col:
-            identify = st.button(t(lang, "identify"), key="identify", type="primary", width="stretch")
+            st.button(
+                t(lang, "identify"), key="identify", type="primary", width="stretch",
+                on_click=ask_prediction, args=(image_id,),
+                disabled=st.session_state.pending == image_id,  # one request at a time
+            )
         with save_col:
             st.download_button(
                 t(lang, "save"), data=data, file_name=name, mime=mime,
                 key="save", on_click="ignore", width="stretch",
             )
-        with st.container(key="start_over_row"):
-            st.button(t(lang, "start_over"), key="start_over", on_click=start_over, type="tertiary")
+    return True
 
-    slot = st.empty()
-    if identify:  # the model runs only after this click
+
+def render_workspace(lang: str, image, source: str) -> None:
+    """Once there is an image: the image and its actions, and the result beside it (below it on a phone)."""
+    data = image.getvalue()
+    image_id = hashlib.sha1(data).hexdigest()
+    mime = image.type or "image/jpeg"
+    name = image.name if source == "upload" else "vision-photo.jpg"
+
+    with st.container(key="workspace"):
+        preview_col, result_col = st.columns(2, gap="medium")
+        with preview_col:
+            shown = render_preview(lang, data, image_id, name, mime)
+        with result_col:
+            slot = st.empty()
+    if not shown:
+        return
+
+    if st.session_state.pending == image_id:  # the model runs only after the button was pressed
         slot.markdown(skeleton(lang), unsafe_allow_html=True)
         result, error = request_prediction(name, data, mime)
         st.session_state.result = {"image_id": image_id, "data": result} if result else None
         st.session_state.error = {"image_id": image_id, "kind": error} if error else None
+        st.session_state.pending = None
+        st.session_state.scroll_to = "result"
+        st.rerun()  # draw again with the button enabled and the result in place
 
     result = st.session_state.result
     error = st.session_state.error
@@ -289,7 +331,35 @@ def render_preview(lang: str, image, source: str) -> None:
             message = t(lang, key) if key in STRINGS[lang] else t(lang, "error_generic")
             slot.markdown(error_card(t(lang, "error_title"), message), unsafe_allow_html=True)
     else:
-        slot.empty()
+        slot.markdown(placeholder_card(lang), unsafe_allow_html=True)
+
+
+# What each scroll target needs to show; nothing moves if that is already on screen
+SCROLL_TARGETS = {
+    "preview": (".st-key-preview_card", ".st-key-identify"),
+    "result": (".v-result-card", ".v-result-emotion"),
+}
+
+
+def scroll_into_view(target: str) -> None:
+    """Brings the next thing the user needs on screen: the new image, or the result after a prediction."""
+    card, must_see = SCROLL_TARGETS[target]
+    st.html(
+        f"""<script class="v-js">(() => {{
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let tries = 0;
+  const go = () => {{
+    const main = document.querySelector('[data-testid="stMain"]');
+    const card = document.querySelector('{card}'), part = document.querySelector('{must_see}');
+    if (!main || !card || !part) {{ if (tries++ < 40) setTimeout(go, 50); return; }}
+    const view = main.getBoundingClientRect(), box = card.getBoundingClientRect(), p = part.getBoundingClientRect();
+    if (box.top >= view.top && p.bottom <= view.bottom) return;
+    main.scrollTo({{ top: main.scrollTop + box.top - view.top - 16, behavior: reduce ? 'auto' : 'smooth' }});
+  }};
+  requestAnimationFrame(go);
+}})();</script>""",
+        unsafe_allow_javascript=True,
+    )
 
 
 # ---------- Page ----------
@@ -298,20 +368,26 @@ def main() -> None:
     init_state()
     lang = st.session_state.lang
     st.set_page_config(page_title=t(lang, "page_title"), page_icon="◉", layout="centered")
+    image, source = current_image()
     st.markdown(
-        css(DIRECTION[lang], t(lang, "upload_label"), t(lang, "camera_take"), t(lang, "camera_clear")),
+        css(DIRECTION[lang], t(lang, "upload_label"), t(lang, "camera_take"), t(lang, "camera_clear"),
+            has_image=image is not None),
         unsafe_allow_html=True,
     )
 
     render_header(lang)
     status_slot = st.container()  # filled last, so the page never waits on the health check
 
-    render_inputs(lang)
-    image, source = current_image()
+    render_inputs(lang)  # stays mounted (it holds the image) but folds away once there is one
     if image is not None:
-        render_preview(lang, image, source)
+        render_workspace(lang, image, source)
 
     st.markdown(f'<p class="v-footer">{t(lang, "footer", dataset=MODEL_DATASET)}</p>', unsafe_allow_html=True)
+
+    target = st.session_state.scroll_to
+    st.session_state.scroll_to = None
+    if target and image is not None:
+        scroll_into_view(target)
 
     if not api_is_up():
         with status_slot:

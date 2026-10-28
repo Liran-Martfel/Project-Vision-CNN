@@ -58,7 +58,7 @@ All three models share the same architecture. Only the training data and setting
 |---|---|---|---|
 | v1 | FER-2013 | ~59% | first version |
 | **v2** | **FER+ (7 classes)** | **74.5%** | **used by the app** |
-| v3 | FER+ with `class_weight='balanced'` | 61% | experiment |
+| v3 | FER+ with `class_weight='balanced'` | 54% | experiment |
 
 **Why v2:** FER+'s cleaner labels raised accuracy by about 15 points over v1. v3 tried to help the rare emotions
 with class weights during training, but lost 13.5 points overall, so v2 was kept.

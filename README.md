@@ -1,15 +1,14 @@
 # Project Vision — Facial Emotion Recognition
 
-> **Try the app:** [Open Project Vision](http://192.168.1.95:8502)
-> The link uses a private network address and is available only when the app is running on the host computer and your device can reach it on the same network.
-
 An end-to-end computer vision project that classifies facial expressions with a convolutional neural network (CNN). The model is trained in Google Colab on FER+, and a bilingual web app lets users take or upload a photo to receive a prediction.
 
-**Hebrew:** מערכת לזיהוי הבעות פנים באמצעות רשת נוירונים קונבולוציונית (CNN). המודל אומן על FER+, ואפליקציית רשת בעברית ובאנגלית מאפשרת לצלם או להעלות תמונה ולקבל חיזוי.
+<p dir="rtl" lang="he">
+<b>בעברית:</b> מערכת לזיהוי הבעות פנים באמצעות רשת נוירונים קונבולוציונית (<bdi>CNN</bdi>). המודל אומן על <bdi>FER+</bdi>, ואפליקציית רשת בעברית ובאנגלית מאפשרת לצלם או להעלות תמונה ולקבל חיזוי.
+</p>
 
 ## At a glance
 
-| | |
+| Item | Details |
 |---|---|
 | **Task** | Facial-expression classification |
 | **Emotions** | Angry, disgust, fear, happy, neutral, sad, surprise |
@@ -32,18 +31,22 @@ An end-to-end computer vision project that classifies facial expressions with a 
 
 The app detects a face, converts it to grayscale, resizes it to 48 × 48 pixels, scales pixel values to the range 0–1, and passes it to the CNN. The app applies a prior correction to the model probabilities, then displays the predicted emotion, confidence, and probabilities for all seven classes. Predictions below 60% confidence are marked as **Unknown**.
 
-```text
-Photo → Face detection → Preprocessing → CNN → Prior correction → Prediction
-       OpenCV Haar       grayscale,      7 classes   rebalance      emotion,
-       cascade          48 × 48, /255                probabilities confidence
+```mermaid
+flowchart LR
+    A["Photo"] --> B["Face detection<br/>OpenCV Haar cascade"]
+    B --> C["Preprocessing<br/>grayscale, 48 × 48, ÷255"]
+    C --> D["CNN<br/>7 classes"]
+    D --> E["Prior correction<br/>rebalance probabilities"]
+    E --> F["Prediction<br/>emotion + confidence"]
 ```
 
 The application separates the interface from inference: Streamlit sends the image to FastAPI over HTTP, and the API loads the model once at startup.
 
-```text
-Streamlit (app.py) ──HTTP──▶ FastAPI (api.py) ──▶ vision_core.py ──▶ CNN model
-    interface                 validation and       preprocessing     inference
-                              request handling      and prediction
+```mermaid
+flowchart LR
+    A["Streamlit · app.py<br/>interface"] -- HTTP --> B["FastAPI · api.py<br/>validation, requests"]
+    B --> C["vision_core.py<br/>preprocessing, prediction"]
+    C --> D["CNN model<br/>training_model_v2.keras"]
 ```
 
 ## Model and evaluation
@@ -56,7 +59,7 @@ The project compares three versions using the same CNN architecture:
 | **v2** | **FER+ (7 classes)** | **74.5%** | **Selected for the app** |
 | v3 | FER+ with balanced class weights | 54% | Experiment; not selected |
 
-FER+ improved the v2 result over v1. A separate experiment applies prior correction to v2's output to reduce the effect of class imbalance. On the test set, this changed accuracy from **74.5% to 73.8%** and macro recall from **52.4% to 60.2%**. The correction improves the balance of predictions for less common emotions; it does not retrain the model.
+FER+ improved the v2 result over v1. The app then applies a prior correction to v2's output to reduce the effect of class imbalance (`balance_prediction` in the notebook and in `vision_core.py`). On the test set, this changed accuracy from **74.5% to 73.8%** and macro recall from **52.4% to 60.2%**. The correction improves the balance of predictions for less common emotions; it does not retrain the model.
 
 ## Run locally
 
@@ -108,26 +111,28 @@ The camera is generally available to a mobile browser only on `localhost` or ove
 
 Only the Streamlit port is exposed by this setup; the API remains local. Keep the token private, and note the app is available only while the computer and required services are running.
 
+**If the link doesn't open:**
+
+| Error | Meaning | Fix |
+|---|---|---|
+| `ERR_NGROK_3200` | The endpoint is offline: no ngrok process is running | Start `ngrok http <port>` again (closing its terminal stops it) |
+| `ERR_NGROK_121` | The ngrok agent is too old (free accounts need 3.20.0 or newer) | Run `ngrok update`, or download it again from [ngrok.com/download](https://ngrok.com/download) |
+
 ## Repository layout
 
-```text
-.
-├── docs/                         Project notes, audit, and summary
-├── model_versions/               Earlier model versions
-├── notebook/                     Notebook workspace
-├── screenshots/                  App screenshots
-├── test_images/                  Sample images for testing
-├── vision_app/
-│   ├── api.py                     FastAPI endpoints
-│   ├── app.py                     Streamlit interface
-│   ├── config.py                  Model configuration
-│   ├── i18n.py                    Hebrew and English UI text
-│   ├── styles.py                  Interface styling
-│   ├── vision_core.py             Model loading and inference
-│   ├── models/                    Model used by the app
-│   └── requirements.txt           Python dependencies
-└── split_dataset.py               Dataset preparation utility
-```
+| Path | What it is |
+|---|---|
+| `PROJECT_CNN.ipynb` | The Colab notebook: data, training, evaluation, and the inference functions |
+| `JOURNAL.md` | The project journal: experiments, results, and what was learned |
+| `screenshots/` | App screenshots (see [screenshots/README.md](screenshots/README.md)) |
+| `vision_app/api.py` | FastAPI endpoints (`/health`, `/predict`) |
+| `vision_app/app.py` | Streamlit interface |
+| `vision_app/vision_core.py` | Model loading and the inference functions from the notebook |
+| `vision_app/config.py` | Which model file the app loads |
+| `vision_app/i18n.py` | Hebrew and English UI text |
+| `vision_app/styles.py` | Interface styling |
+| `vision_app/models/` | The model used by the app (`training_model_v2.keras`) |
+| `vision_app/requirements.txt` | Python dependencies |
 
 See [vision_app/README.md](vision_app/README.md) for the API reference and app-specific configuration details.
 

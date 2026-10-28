@@ -40,7 +40,7 @@ Facial-expression recognition with a CNN: what I built, what I tested, and what 
 | 2026-10-25 → 10-26 | Switched to **FER+**: same model, **74.5%** (v2). Tried class weights (v3, 61.2%) and kept v2. |
 | 2026-10-26 | Fixed iPhone gallery photos (Pillow reads them as MPO). Moved the app to v2, ran a full audit, added the all-emotion probabilities and connected the app to the internet with ngrok. |
 | 2026-10-27 | Tested the site on my own phone over ngrok: camera, gallery upload, a confident result (happy, 100%) and an Unknown result (51.5%). |
-| 2026-10-28 | Layout review and fixes (the inputs fold away, the result scrolls into view, two columns on desktop). Added the **prior correction** (`balance_prediction`, α = 0.5) to the notebook and the app. README rewritten. ngrok stopped working: the agent needed an update, and Windows Defender quarantines the new version. |
+| 2026-10-28 | Layout review and fixes (the inputs fold away, the result scrolls into view, two columns on desktop). Added the **prior correction** (`balance_prediction`, α = 0.5) to the notebook and the app. README rewritten. ngrok stopped working: the agent needed an update, and Windows Defender quarantined the newest version (3.39.13). Went back to 3.39.11, the version that had worked; the public link is up again. |
 
 ---
 
@@ -523,7 +523,7 @@ Phone → https://spoof-nylon-unclip.ngrok-free.dev → ngrok on my PC → Strea
 | iPhone gallery photos rejected (415) | Pillow reads them as MPO, which wasn't allowed | Allow MPO; found with ngrok's request inspector |
 | `ERR_NGROK_18006` / `ERR_NGROK_334` | A domain not on my account / a domain already in use by another tunnel | Use the domain from the dashboard; stop the old tunnel first |
 | `ERR_NGROK_3200` | The link's endpoint is offline: closing the terminals stopped ngrok | Start ngrok again (with the API and Streamlit running) |
-| `ERR_NGROK_121` | The ngrok agent is too old (3.20.0 or newer required) | `ngrok update`. On 2026-10-28 Windows Defender quarantined the updated file as `Trojan:Win32/Kepavll!rfn`, a reputation-based detection that is very likely a false positive |
+| `ERR_NGROK_121` | The ngrok agent is too old (3.20.0 or newer required) | Any version from 3.20.0 works. On 2026-10-28 Windows Defender quarantined the brand-new 3.39.13 as `Trojan:Win32/Kepavll!rfn` (a reputation-based detection, very likely a false positive). Installed 3.39.11 instead, from ngrok's own server: checksum verified, signed by ngrok, Inc., and not flagged |
 
 ### Misunderstandings I corrected
 
@@ -612,7 +612,7 @@ More depth (4–5+ blocks), BatchNormalization, longer training with a decaying 
 - **The v3 number in the notebook.** The comment in the training cell says v3 reached 54%, but the same cell's log shows the restored epoch (33) at 61.2%, the figure in this journal.
 - **Class imbalance.** Disgust has 54× fewer training images than neutral. The prior correction helps (disgust recall 0% → 21%), but more disgust and fear images would help more.
 - **The website is only online while my computer is.** ngrok tunnels to my PC. Always-on would need real hosting (for example Streamlit Community Cloud plus a host for the API).
-- **ngrok and Windows Defender.** The updated agent (3.39.13) is quarantined as a Trojan, almost certainly a false positive. Until it's allowed or Microsoft clears it, the public link shows `ERR_NGROK_3200`.
+- **ngrok stays on 3.39.11.** Don't run `ngrok update` until Microsoft stops flagging the newest version; it would replace the working file with the one Defender quarantines.
 - **Mixed imports.** `ImageDataGenerator` comes from `tensorflow.keras`, the layers from `keras`. Fine in Colab today; the first thing to check if odd errors appear elsewhere.
 
 ### Next steps
@@ -621,5 +621,5 @@ More depth (4–5+ blocks), BatchNormalization, longer training with a decaying 
 3. ~~Final evaluation with a confusion matrix per emotion.~~ Done: 2.9, experiment 6 and 2.10.
 4. ~~Phase 3: build the app.~~ Done: FastAPI + Streamlit, with both bonuses (Unknown below 60%, ngrok) and every emotion's probability.
 5. ~~Preprocess in the app exactly as in training.~~ Done: the app uses my own `organize_img`.
-6. Allow ngrok in Windows Defender and bring the public link back.
+6. ~~Bring the public link back.~~ Done: ngrok 3.39.11, tested end to end over the public link on 2026-10-28.
 7. Submit: the code, the model and the Colab notebook on GitHub, then the email.

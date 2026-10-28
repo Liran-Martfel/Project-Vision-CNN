@@ -15,7 +15,7 @@ The frontend never loads the model: it only talks to the API over HTTP.
 
 | File | What it does |
 |---|---|
-| `vision_core.py` | The inference functions from the Colab notebook, copied verbatim, plus model and face-detector loading |
+| `vision_core.py` | The inference functions from the Colab notebook, copied verbatim, plus model and face-detector loading and `balance_prediction` (prior correction, α = 0.5) |
 | `api.py` | FastAPI backend: `GET /health`, `POST /predict` |
 | `app.py` | Streamlit frontend |
 | `i18n.py` | All UI text in Hebrew and English |
@@ -77,6 +77,7 @@ disgust: 0.00%
 }
 ```
 
+- All numbers are after the prior correction (`balance_prediction`), which offsets the training set's bias toward neutral/happy.
 - `is_unknown` is true when `create_answer` reports under 60% confidence.
 - `face_detected` is false when no face was found and the whole image was analyzed.
 - `probabilities_text` is the output of `emotions_probability`; `probabilities` holds the same

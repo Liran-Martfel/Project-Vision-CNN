@@ -42,7 +42,7 @@ def organize_img(img):
   return img
 
 def predict(img, cnn_model):
-  prediction = cnn_model.predict(img) 
+  prediction = cnn_model.predict(img)
   prediction_output = np.argmax(prediction) #taking the place of the highest propability
   full_prediction = prediction_class_name[prediction_output] # position into emotion name
   return prediction, prediction_output, full_prediction
@@ -78,7 +78,6 @@ def face_ditector(face_img,PIL_img):
 # How common each emotion was in the FER+ training set (same order as prediction_class_name)
 train_counts = np.array([2466, 191, 652, 7528, 10308, 3514, 3562])
 train_prior = train_counts / train_counts.sum()
-
 def balance_prediction(prediction, alpha=0.5):
   # remove part of the model's habit of guessing the common emotions (neutral, happy)
   balanced = prediction / train_prior ** alpha

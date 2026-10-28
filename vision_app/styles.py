@@ -40,9 +40,17 @@ def icon(name: str, size: int = 24) -> str:
     )
 
 
-def css(direction: str, browse_label: str, take_label: str, clear_label: str) -> str:
-    """The whole stylesheet. Direction and the relabelled Streamlit buttons depend on the language."""
+def css(direction: str, browse_label: str, take_label: str, clear_label: str, has_image: bool = False) -> str:
+    """The whole stylesheet. Direction and the relabelled Streamlit buttons depend on the language;
+    once there is an image the inputs fold away and the page widens to two columns on desktop."""
     text_align = "right" if direction == "rtl" else "left"
+    image_state = """
+/* ---------- There is an image: the inputs fold away, image and result side by side ---------- */
+.st-key-input_card { display: none !important; }
+@media (min-width: 641px) {
+  [data-testid="stMainBlockContainer"], .block-container { max-width: 1040px; }
+}
+""" if has_image else ""
     return f"""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Assistant:wght@400;500;600;700&display=swap');
@@ -93,14 +101,18 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 [data-testid="stMain"] {{ direction: {direction}; text-align: {text_align}; }}
 /* Text only: Streamlit's icons are ligatures in their own font, so spans are left alone */
 .stApp :is(p, h1, h2, h3, label, li, input, small, [data-testid="stMarkdownContainer"]) {{ font-family: inherit; }}
+/* st.markdown aligns its text left by default, even in Hebrew; start follows the page direction */
+.stApp [data-testid="stMarkdownContainer"] {{ text-align: start; }}
 
 /* Product feel: no Streamlit chrome */
 #MainMenu, footer, header[data-testid="stHeader"], [data-testid="stToolbar"],
 [data-testid="stDecoration"], [data-testid="stStatusWidget"] {{ display: none !important; }}
 
 [data-testid="stMainBlockContainer"], .block-container {{
-  max-width: 600px; padding: 1.75rem 16px 3rem;
+  max-width: 600px; padding: 1.75rem 16px 3rem; position: static;
 }}
+/* Scripts that only scroll the page take no room */
+[data-testid="stElementContainer"]:has(.v-js) {{ display: none; }}
 
 /* ---------- Header ---------- */
 .v-header {{ text-align: center; margin: 0.5rem 0 0.25rem; }}
@@ -111,24 +123,22 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   -webkit-background-clip: text; background-clip: text; color: transparent;
 }}
 .stApp .v-subtitle {{
-  margin: 0.6rem auto 0; max-width: 34ch; color: var(--text-muted); text-wrap: balance; text-align: center;
+  margin: 0.6rem auto 0; max-width: 60ch; color: var(--text-muted); text-wrap: balance; text-align: center;
   font-size: 1rem; line-height: 1.55; letter-spacing: 0;
 }}
 
-/* Language toggle: centered segmented control */
-.st-key-lang_row {{ align-items: center; }}
-.st-key-lang_row [data-testid="stButtonGroup"] {{ justify-content: center; }}
-[data-testid="stButtonGroup"] button {{
-  min-height: 44px; min-width: 88px; border-radius: 999px !important;
-  border: 1px solid var(--glass-border) !important; background: var(--glass-bg) !important;
-  color: var(--navy) !important; font-weight: 600;
+/* Language switch: a small pill in the page's top corner (left in Hebrew, right in English), out of the main column */
+[data-testid="stLayoutWrapper"]:has(> .st-key-lang_switch) {{
+  position: absolute; top: 12px; inset-inline-end: 16px; z-index: 5; width: max-content;
+}}
+.st-key-lang_switch, .st-key-lang_switch [data-testid="stElementContainer"] {{ width: max-content; }}
+.st-key-lang_switch button {{
+  min-height: 44px; padding: 0 16px; border-radius: 999px;
+  border: 1px solid var(--glass-border); background: var(--glass-bg); color: var(--navy);
   backdrop-filter: var(--glass-blur); -webkit-backdrop-filter: var(--glass-blur);
   transition: transform 100ms ease-out, background-color 150ms ease-out;
 }}
-[data-testid="stButtonGroup"] button[kind="segmented_controlActive"],
-[data-testid="stButtonGroup"] button[aria-checked="true"] {{
-  background: var(--navy) !important; color: var(--bg-2) !important; border-color: var(--navy) !important;
-}}
+.stApp .st-key-lang_switch button p {{ font-size: 0.9rem; font-weight: 600; white-space: nowrap; }}
 
 /* ---------- Glass cards ---------- */
 .st-key-input_card, .st-key-preview_card, .st-key-api_down_card, .v-card {{
@@ -157,7 +167,7 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 }}
 .stApp .v-tile-title {{ margin: 0; font-weight: 600; font-size: 1.05rem; letter-spacing: -0.01em; color: var(--navy); }}
 .stApp .v-tile-hint {{ margin: 2px 0 0; font-size: 0.875rem; color: var(--text-muted); line-height: 1.4; }}
-.stApp .v-types {{ margin: 6px 0 0; font-size: 0.8rem; color: var(--text-muted); }}
+.stApp .v-types {{ margin: 2px 0 0; font-size: 0.8rem; color: var(--text-muted); line-height: 1.4; }}
 
 /* ---------- Buttons ---------- */
 .stApp .stButton button p, .stApp .stDownloadButton button p {{ font-size: 1rem; font-weight: 600; }}
@@ -167,7 +177,7 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   touch-action: manipulation;
   transition: transform 100ms ease-out, box-shadow 150ms ease-out, background-color 150ms ease-out;
 }}
-.stButton button:active, .stDownloadButton button:active, [data-testid="stButtonGroup"] button:active {{
+.stButton button:active, .stDownloadButton button:active {{
   transform: scale(0.97);  /* feedback on press, not on release */
 }}
 .stButton button[kind="primary"] {{
@@ -181,11 +191,9 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 }}
 .stButton button[kind="tertiary"] {{ color: var(--text-muted); min-height: 44px; }}
 .stButton button[kind="tertiary"]:hover {{ color: var(--accent); }}
-.stButton button:focus-visible, .stDownloadButton button:focus-visible,
-[data-testid="stButtonGroup"] button:focus-visible {{
+.stButton button:focus-visible, .stDownloadButton button:focus-visible {{
   outline: 2px solid var(--accent); outline-offset: 2px;
 }}
-.st-key-start_over_row {{ align-items: center; }}
 
 /* ---------- Streamlit's file uploader and camera, restyled and relabelled ---------- */
 [data-testid="stFileUploaderDropzone"] {{
@@ -225,10 +233,28 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 }}
 [data-testid="stCameraInput"]:has(img) [data-testid="stCameraInputButton"]::after {{ content: "{clear_label}"; }}
 
-/* ---------- Preview ---------- */
-.stApp .v-section-title {{ margin: 0 0 12px; font-weight: 600; font-size: 1.05rem; color: var(--navy); }}
+/* ---------- Preview: title and "change photo" on one line, then the image and its actions ---------- */
+.stApp .v-section-title {{ margin: 0; font-weight: 600; font-size: 1.05rem; color: var(--navy); }}
+.st-key-preview_head {{ flex-wrap: nowrap; }}
+.st-key-preview_head [data-testid="stMarkdownContainer"] {{ margin-bottom: 0; }}  /* Streamlit's -1rem would push the title off center */
+.st-key-preview_head .stButton button {{ min-height: 44px; padding-inline: 4px; }}
 .st-key-preview_card [data-testid="stImage"] img {{
   border-radius: var(--radius-md); max-height: 380px; object-fit: contain; background: var(--bg-2);
+}}
+@media (min-width: 641px) {{
+  .st-key-preview_card [data-testid="stImage"] img {{ max-height: 320px; }}
+}}
+.stButton button:disabled[kind="primary"] {{ opacity: 0.6; cursor: progress; }}
+
+/* Result column before the first prediction (desktop only: on a phone it would just add length) */
+.v-placeholder {{
+  min-height: 248px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 10px; text-align: center;
+}}
+.v-placeholder .v-result-icon {{ width: 64px; height: 64px; background: var(--accent-soft); color: var(--text-muted); animation: none; }}
+.stApp .v-placeholder .v-result-hint {{ max-width: 26ch; }}
+@media (max-width: 640px) {{
+  [data-testid="stElementContainer"]:has(.v-placeholder) {{ display: none; }}
 }}
 
 /* ---------- Result ---------- */
@@ -329,7 +355,13 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
 /* ---------- Mobile ---------- */
 @media (max-width: 640px) {{
   [data-testid="stMainBlockContainer"], .block-container {{ padding-top: 1.25rem; }}
-  .st-key-input_card, .st-key-preview_card, .v-card {{ padding: 18px 16px; }}
+  .st-key-preview_card, .v-card {{ padding: 18px 16px; }}
+  /* One card level on a phone: the two input tiles are the cards, so they get the full width */
+  .st-key-input_card {{
+    padding: 0; background: none; border: none; box-shadow: none;
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }}
+  .st-key-camera_tile, .st-key-upload_tile {{ box-shadow: var(--glass-shadow); }}
 }}
 
 /* ---------- Accessibility preferences ---------- */
@@ -339,11 +371,11 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
     animation: fade 200ms ease-out both !important;
   }}
   .v-skel, .v-prob-fill {{ animation: none; }}
-  .stButton button:active, .stDownloadButton button:active, [data-testid="stButtonGroup"] button:active {{ transform: none; }}
+  .stButton button:active, .stDownloadButton button:active {{ transform: none; }}
 }}
 @keyframes fade {{ from {{ opacity: 0; }} to {{ opacity: 1; }} }}
 @media (prefers-reduced-transparency: reduce) {{
-  .st-key-input_card, .st-key-preview_card, .v-card, [data-testid="stButtonGroup"] button {{
+  .st-key-input_card, .st-key-preview_card, .v-card, .st-key-lang_switch button {{
     background: var(--bg-2); backdrop-filter: none; -webkit-backdrop-filter: none;
   }}
 }}
@@ -351,5 +383,5 @@ html, body, .stApp {{ background: var(--bg); color: var(--navy); }}
   .st-key-input_card, .st-key-preview_card, .v-card {{ background: var(--bg-2); border: 1px solid var(--navy); }}
   .v-tile-hint, .v-subtitle, .v-result-label {{ color: var(--navy); }}
 }}
-</style>
+{image_state}</style>
 """

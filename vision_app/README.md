@@ -70,9 +70,7 @@ streamlit run app.py
   "is_unknown": false,
   "answer": "I'm 99.70% sure that this emotion is: happy",
   "face_detected": true,
-  "probabilities_text": "angry: 0.00%
-disgust: 0.00%
-...",
+  "probabilities_text": "angry: 0.00%\ndisgust: 0.00%\n...",
   "probabilities": {"angry": 0.0, "disgust": 0.0, "fear": 0.0, "happy": 0.997, "neutral": 0.003, "sad": 0.0, "surprise": 0.0}
 }
 ```

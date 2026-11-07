@@ -1,6 +1,9 @@
 # Project Vision — Facial Emotion Recognition
 
-**[Visit the website →](https://spoof-nylon-unclip.ngrok-free.dev)**
+**[Visit the website →](https://vision-cnn.streamlit.app)**
+
+Hosted on Streamlit Community Cloud, so it's always available. The first visit after a quiet period may take about half a minute while the site wakes up.
+The same app is also served from my computer through ngrok (the course bonus): https://spoof-nylon-unclip.ngrok-free.dev
 
 An end-to-end computer vision project that classifies facial expressions with a convolutional neural network (CNN). The model is trained in Google Colab on FER+, and a bilingual web app lets users take or upload a photo to receive a prediction.
 

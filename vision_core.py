@@ -15,7 +15,7 @@ import cv2 # openCV library which have face recegnition trained modelinside
 
 from config import MODEL_FILENAME
 
-MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models", MODEL_FILENAME)
+MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), MODEL_FILENAME)
 
 # Fail loudly: never fall back to another model file
 if not os.path.isfile(MODEL_PATH):

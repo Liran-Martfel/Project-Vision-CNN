@@ -47,16 +47,15 @@ If face detection does not find a face, the app analyzes the full image and disp
 
 **Requirements:** Python 3.12 (TensorFlow does not support newer Python versions yet).
 
-Install the dependencies once:
+Install the dependencies once, from the repository folder:
 
 ```powershell
-cd vision_app
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 ```
 
-Then start the API, the website, and its public address, each in its own terminal inside `vision_app`:
+Then start the API, the website, and its public address, each in its own terminal in the repository folder:
 
 ```powershell
 uvicorn api:app --port 8000
@@ -76,17 +75,20 @@ ngrok http --url=spoof-nylon-unclip.ngrok-free.dev 8502
 |---|---|
 | `PROJECT_CNN.ipynb` | The Colab notebook: data, training, evaluation, and the inference functions |
 | `JOURNAL.md` | The project journal: experiments, results, and what was learned |
-| `vision_app/api.py` | FastAPI endpoints (`/health`, `/predict`) |
-| `vision_app/app.py` | Streamlit interface |
-| `vision_app/vision_core.py` | Model loading and the inference functions from the notebook |
-| `vision_app/config.py` | Which model file the app loads |
-| `vision_app/i18n.py` | Hebrew and English UI text |
-| `vision_app/styles.py` | Interface styling |
-| `vision_app/models/` | The model used by the app (`training_model_v2.keras`) |
-| `vision_app/requirements.txt` | Python dependencies |
+| `training_model_v2.keras` | **The model used by the app** (v2, FER+, 74.5%) |
+| `api.py` | FastAPI endpoints (`/health`, `/predict`) |
+| `app.py` | Streamlit interface |
+| `vision_core.py` | Model loading and the inference functions from the notebook |
+| `config.py` | Which model file the app loads |
+| `i18n.py` | Hebrew and English UI text |
+| `styles.py` | Interface styling |
+| `requirements.txt` | Python dependencies |
+| `.streamlit/config.toml` | Streamlit theme and upload limit |
+| `API.md` | API reference and app configuration |
 | `training_model.keras` | v1, the earlier FER-2013 model (~59%), kept for reference; the app doesn't use it |
+| `training_model_v3.keras` | v3, FER+ with class weights (54%), kept for reference; the app doesn't use it |
 
-See [vision_app/README.md](vision_app/README.md) for the API reference and app-specific configuration details.
+See [API.md](API.md) for the API reference and app-specific configuration details.
 
 ## Limitations
 
@@ -110,6 +112,6 @@ See [vision_app/README.md](vision_app/README.md) for the API reference and app-s
 | `ERR_NGROK_334` (endpoint already online) | Another ngrok window is already using the address | Close the other ngrok window (or run `taskkill /IM ngrok.exe /F`), then start ngrok again |
 | `ERR_NGROK_121` (agent version too old) | The ngrok program is older than 3.20.0 | Install a newer version from [ngrok.com/download](https://ngrok.com/download). The `winget` package (3.3.1) is too old |
 | `ngrok` is "not recognized", or `ngrok.exe` disappeared after `ngrok update` | Windows Defender quarantined the newest version as `Trojan:Win32/Kepavll!rfn` (a false positive) | Use version **3.39.11**, which Defender doesn't flag, and don't run `ngrok update` |
-| The app opens but says **"The service isn't available right now"** | The API isn't running | Start `uvicorn api:app --port 8000` in `vision_app` and press **Try again** |
+| The app opens but says **"The service isn't available right now"** | The API isn't running | Start `uvicorn api:app --port 8000` in the repository folder and press **Try again** |
 
 **Author:** Liran Martfel

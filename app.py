@@ -7,6 +7,10 @@ Run:  streamlit run app.py   (with the API running, see README.md)
 import hashlib
 import html
 import os
+import subprocess
+import sys
+import time
+from urllib.parse import urlparse
 
 import requests
 import streamlit as st
@@ -97,6 +101,27 @@ def api_is_up() -> bool:
         return requests.get(f"{API_URL}/health", timeout=2).ok
     except requests.RequestException:
         return False
+
+
+def hosts_own_api() -> bool:
+    """Streamlit Community Cloud runs only this file (from /mount/src/...), so there the website
+    starts the API itself. Anywhere else the API is started separately, as in the README."""
+    return os.environ.get("VISION_START_API") == "1" or os.path.abspath(__file__).startswith("/mount/src/")
+
+
+@st.cache_resource(show_spinner=False)
+def start_api() -> bool:
+    """Starts the API once per server, as its own process: this page still never loads the model."""
+    port = urlparse(API_URL).port or 8000
+    subprocess.Popen(
+        [sys.executable, "-m", "uvicorn", "api:app", "--host", "127.0.0.1", "--port", str(port)],
+        cwd=os.path.dirname(os.path.abspath(__file__)),
+    )
+    for _ in range(120):  # loading TensorFlow and the model takes ~10-40 s on a small server
+        if api_is_up():
+            return True
+        time.sleep(1)
+    return False
 
 
 def request_prediction(name: str, data: bytes, mime: str) -> tuple[dict | None, str | None]:
@@ -380,6 +405,9 @@ def main() -> None:
     )
 
     render_header(lang)
+    if hosts_own_api() and not api_is_up():
+        with st.spinner(t(lang, "waking_up")):
+            start_api()
     status_slot = st.container()  # filled last, so the page never waits on the health check
 
     render_inputs(lang)  # stays mounted (it holds the image) but folds away once there is one

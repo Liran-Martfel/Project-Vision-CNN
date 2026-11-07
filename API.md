@@ -4,7 +4,7 @@ Take or upload a photo of a face, and a CNN trained on FER+ recognizes the emoti
 (angry, disgust, fear, happy, neutral, sad, surprise). Hebrew and English, phone and desktop.
 
 ```
-Streamlit (app.py)  ──HTTP──▶  FastAPI (api.py)  ──▶  vision_core.py  ──▶  models/<MODEL_FILENAME>
+Streamlit (app.py)  ──HTTP──▶  FastAPI (api.py)  ──▶  vision_core.py  ──▶  <MODEL_FILENAME>
      UI only                    validation +           the inference
      requests                   call chain             functions
 ```
@@ -21,7 +21,7 @@ The frontend never loads the model: it only talks to the API over HTTP.
 | `i18n.py` | All UI text in Hebrew and English |
 | `styles.py` | The app's CSS (navy & beige glass) and SVG icons |
 | `config.py` | `MODEL_FILENAME` and `MODEL_DATASET`: the one place to switch models |
-| `models/` | The trained model in use (v2: FER+, 74.5% test accuracy) |
+| `training_model_v2.keras` | The trained model in use (v2: FER+, 74.5% test accuracy) |
 | `.streamlit/config.toml` | Theme and upload limit |
 
 ## Install
@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 ## Run
 
-Two terminals, both inside `vision_app/` with the virtual environment active.
+Two terminals, both in the repository folder with the virtual environment active.
 
 ```bash
 # 1. the API (loads the model once, takes ~10 s, and prints its filename, size and SHA-256)
@@ -93,7 +93,7 @@ Errors return JSON `{"error": "<code>", "detail": "..."}`:
 
 ## Changing the model
 
-1. Put the new `.keras` file in `models/`.
+1. Put the new `.keras` file in the repository folder, next to `vision_core.py`.
 2. Set `MODEL_FILENAME` (and `MODEL_DATASET` for the footer) in `config.py`.
 3. Restart the API. It stops with a clear error if the file is missing (no fallback to another model),
    and prints the loaded file's SHA-256 so you can compare it with the one from Colab.
